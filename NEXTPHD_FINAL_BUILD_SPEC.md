@@ -1126,6 +1126,28 @@ No email required.
 
 ---
 
+# 16.5 EMERGING TOPIC CANDIDATE
+
+An Emerging Topic Candidate is a research topic for which the system has sufficient publication evidence showing increased recent research activity relative to an earlier baseline period.
+
+**Required methodology:**
+- **Recent period**: last 12 months.
+- **Baseline period**: 12–24 months before the recent period.
+
+A topic may be surfaced as an `EMERGING_TOPIC_CANDIDATE` only when:
+1. It has sufficient recent publication evidence (minimum 3 recent publications).
+2. It has sufficient total evidence to avoid classifying a topic from only one or two publications.
+3. Recent publication activity is materially higher than the baseline activity (`recent_count > baseline_count`).
+4. The system preserves the publications that produced the detection as evidence.
+5. Each publication retains its existing provenance and stable scholarly identifier where available (`openalex_id`, `source_url`).
+6. The system does not claim that a topic is scientifically "emerging" beyond what the measured publication activity supports.
+7. Where evidence is insufficient, the topic must remain UNKNOWN / not surfaced.
+
+**Important implementation rule:**
+Do not use an LLM to decide whether a topic is emerging. Use deterministic publication counts/trends from the existing publication data and OpenAlex infrastructure.
+
+---
+
 # 17. FUNDING CLASSIFICATION
 
 Funding should be evidence-based.
