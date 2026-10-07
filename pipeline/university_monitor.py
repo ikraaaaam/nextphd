@@ -19,8 +19,12 @@ class UniversityMonitor:
         return hashlib.sha256(content.encode('utf-8')).hexdigest()
 
     def check_url(self, url: str, title: str, owner_id: str):
+        if not url:
+            return
+            
         content = self.fetch_page(url)
         if not content:
+            # We could emit a source warning here, but for now we just fail gracefully
             return
             
         content_hash = self.generate_hash(content)
@@ -55,13 +59,15 @@ def run_monitor(owner_id: str):
     db = DatabaseManager()
     monitor = UniversityMonitor(db)
     
-    # Small shortlist for curated-page monitoring
-    shortlist = [
-        {"url": "https://example.com", "title": "Example University Admissions"}
-    ]
+    # Fetch universities for this owner
+    unis_res = db.client.table('universities').select('*').eq('owner_id', owner_id).execute()
     
-    for item in shortlist:
-        monitor.check_url(item["url"], item["title"], owner_id)
+    for uni in unis_res.data:
+        url = uni.get('website')
+        if url:
+            monitor.check_url(url, f"{uni['name']} Homepage", owner_id)
+        else:
+            print(f"University {uni['name']} has no website configured for monitoring.")
 
 if __name__ == "__main__":
     import sys
