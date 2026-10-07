@@ -31,20 +31,20 @@ export default async function ProfessorsPage({ searchParams }: { searchParams: P
   const anyFilter = Boolean(q || university || fav || minScore);
 
   return (
-    <div className="stack">
-      <PageHeader title="Professors" description="Researchers you are tracking, ranked by explainable fit with your profile." />
+    <div>
+      <PageHeader title="Professors" description="Track researchers, analyze their publication signals, and evaluate their fit for your PhD." />
       <ErrorNote message={firstError(list.error, unis.error, pubs.error)} />
 
-      <form method="get" className="card">
-        <div className="filters">
-          <div className="field">
+      <form method="get" className="card" style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label htmlFor="q">Search</label>
-            <input id="q" name="q" type="search" defaultValue={q} placeholder="Name or department" />
+            <input id="q" name="q" className="form-control" type="search" defaultValue={q} placeholder="Name or department..." />
           </div>
-          <div className="field">
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label htmlFor="university">University</label>
-            <select id="university" name="university" defaultValue={university}>
-              <option value="">All</option>
+            <select id="university" name="university" className="form-control" defaultValue={university}>
+              <option value="">All Universities</option>
               {unis.rows.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
@@ -52,23 +52,25 @@ export default async function ProfessorsPage({ searchParams }: { searchParams: P
               ))}
             </select>
           </div>
-          <div className="field">
-            <label htmlFor="min_score">Minimum fit score</label>
-            <input id="min_score" name="min_score" type="number" min={0} max={100} defaultValue={minScore || ''} />
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label htmlFor="min_score">Minimum Fit Score</label>
+            <input id="min_score" name="min_score" className="form-control" type="number" min={0} max={100} defaultValue={minScore || ''} placeholder="e.g. 75" />
           </div>
-          <div className="field">
-            <label htmlFor="sort">Sort by</label>
-            <select id="sort" name="sort" defaultValue={sort}>
-              <option value="score">Fit score</option>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label htmlFor="sort">Sort By</label>
+            <select id="sort" name="sort" className="form-control" defaultValue={sort}>
+              <option value="score">Fit score (Highest first)</option>
               <option value="activity">Recently updated</option>
-              <option value="name">Name</option>
+              <option value="name">Name (A-Z)</option>
             </select>
           </div>
-          <label className="check" style={{ marginBottom: 8 }}>
-            <input type="checkbox" name="fav" value="1" defaultChecked={fav} /> Favourites only
-          </label>
+          <div className="form-group" style={{ marginBottom: 0, display: 'flex', alignItems: 'flex-end', paddingBottom: '8px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0, color: 'var(--text)' }}>
+              <input type="checkbox" name="fav" value="1" defaultChecked={fav} style={{ width: '16px', height: '16px', accentColor: 'var(--brand)' }} /> Favourites only
+            </label>
+          </div>
         </div>
-        <div className="row" style={{ marginTop: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
           <button type="submit" className="btn btn-primary">
             Apply filters
           </button>
@@ -77,7 +79,7 @@ export default async function ProfessorsPage({ searchParams }: { searchParams: P
               Clear
             </Link>
           )}
-          <span className="small muted">{list.rows.length} professors</span>
+          <span style={{ marginLeft: 'auto', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{list.rows.length} professors found</span>
         </div>
       </form>
 
@@ -85,33 +87,58 @@ export default async function ProfessorsPage({ searchParams }: { searchParams: P
         anyFilter ? (
           <EmptyState title="No professors match these filters" />
         ) : (
-          <EmptyState title="No professors yet">Professors are added during Afternoon Verification, which also scores their fit against your <Link href="/settings">profile</Link>.</EmptyState>
+          <EmptyState title="No professors yet">Professors are discovered automatically during the intelligence cycle, or you can track them manually via University pages. Once recorded, the system will score them against your <Link href="/settings" style={{ fontWeight: 600, textDecoration: 'underline' }}>profile</Link>.</EmptyState>
         )
       ) : (
-        <div className="grid grid-2">
+        <div className="grid-cards">
           {list.rows.map((p) => {
             const topics = asList(p.recent_topics).slice(0, 4);
             return (
-              <article key={p.id} className="card stack-sm">
-                <div className="row-between" style={{ alignItems: 'flex-start' }}>
-                  <h3 style={{ marginBottom: 0 }}>
-                    <Link href={`/professors/${p.id}`}>{p.name}</Link>
-                  </h3>
-                  <FavouriteButton table="professors" id={p.id} current={p.is_favourite} name={p.name} />
+              <article key={p.id} className="card interactive" style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                  <div>
+                    <h3 style={{ marginBottom: '4px', fontSize: '1.1rem' }}>
+                      <Link href={`/professors/${p.id}`} style={{ color: 'var(--text)' }}>{p.name}</Link>
+                    </h3>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-2)' }}>
+                      {p.universities ? <Link href={`/universities/${p.universities.id}`} style={{ fontWeight: 500 }}>{p.universities.name}</Link> : 'University not recorded'}
+                      {p.department && <span> · {p.department}</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    {p.fit_score != null && (
+                      <div style={{ textAlign: 'right', marginTop: '2px' }}>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--brand)', lineHeight: 1 }}>{p.fit_score}%</div>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '2px' }}>Match</div>
+                      </div>
+                    )}
+                    <FavouriteButton table="professors" id={p.id} current={p.is_favourite} name={p.name} />
+                  </div>
                 </div>
-                <p className="small muted">
-                  {p.universities ? <Link href={`/universities/${p.universities.id}`}>{p.universities.name}</Link> : 'University not recorded'}
-                  {p.department ? ` · ${p.department}` : ''}
-                </p>
-                <div className="row">
-                  <ScorePill score={p.fit_score} />
+
+                <div className="chips-container" style={{ margin: '12px 0' }}>
                   <StatusBadge status={p.recruiting_signal === 'none' ? 'NO RECRUITING SIGNAL' : p.recruiting_signal} />
-                  <Badge tone="neutral">{pubCount[p.id] ?? 0} publications stored</Badge>
+                  <Badge tone="neutral">{pubCount[p.id] ?? 0} pubs stored</Badge>
                   {p.h_index != null && <Badge tone="info">h-index {p.h_index}</Badge>}
                 </div>
-                {topics.length > 0 && <p className="small">Research: {topics.join(' · ')}</p>}
-                {p.fit_reason && <p className="small muted">{p.fit_reason}</p>}
-                <p className="small muted">Updated {fmtDate(p.updated_at)}</p>
+
+                <div style={{ flex: 1 }}>
+                  {topics.length > 0 && (
+                    <div style={{ fontSize: '0.85rem', marginBottom: '12px' }}>
+                      <strong style={{ color: 'var(--text-2)' }}>Research Areas:</strong> {topics.join(' · ')}
+                    </div>
+                  )}
+                  {p.fit_reason && (
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-2)', lineHeight: 1.5, paddingLeft: '12px', borderLeft: '2px solid var(--border-strong)' }}>
+                      {p.fit_reason}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px', marginTop: '16px', fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Updated {fmtDate(p.updated_at)}</span>
+                  <Link href={`/professors/${p.id}`} style={{ fontWeight: 600 }}>View dossier →</Link>
+                </div>
               </article>
             );
           })}

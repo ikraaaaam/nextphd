@@ -53,236 +53,153 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div className="stack">
+    <div>
       <PageHeader
-        title={`Welcome back, ${name}`}
-        description="Your PhD opportunity and research intelligence command center."
-        actions={<Badge tone="neutral">{fmtDate(new Date().toISOString())}</Badge>}
+        title={`Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, ${name}`}
+        description="Your PhD intelligence briefing"
+        actions={<div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 500, alignSelf: 'center' }}>{fmtDate(new Date().toISOString())}</div>}
       />
+      
       <ErrorNote message={err} />
 
       {noProfile && (
-        <div className="notice notice-warn">
-          Your profile isn’t configured yet. <Link href="/settings">Complete your profile</Link> to activate personalized matching and enable scheduled runs for your account.
+        <div className="alert alert-warning">
+          <strong>Configuration Action Required:</strong> Your profile isn’t configured yet. <Link href="/settings" style={{ fontWeight: 600, textDecoration: 'underline' }}>Complete your profile</Link> to activate personalized matching and enable scheduled intelligence runs.
         </div>
       )}
-      {noData && (
-        <div className="notice notice-info">
-          Your workspace is empty: no opportunities, universities or professors have been recorded yet. Data appears once the intelligence cycle runs
-          {noProfile ? ' (it needs a saved profile first)' : ''}. You can add the spec’s starter universities from <Link href="/universities">Universities</Link>.
+      
+      {noData && !noProfile && (
+        <div className="alert alert-info">
+          <strong>Workspace initialized:</strong> Your database is currently empty. The system will populate opportunities, universities, and professors when the intelligence cycle runs. You can securely bootstrap the starter targets in the <Link href="/universities" style={{ fontWeight: 600, textDecoration: 'underline' }}>Universities</Link> tab.
         </div>
       )}
 
-      <div className="grid grid-stats">
-        <StatCard label="New opportunities" value={newOpps.length} note="First seen in the last 7 days" href="/opportunities?sort=newest" />
-        <StatCard label="Strong matches" value={strong.length} note={`Match score ≥ ${minScore}%`} href={`/opportunities?min_score=${minScore}&sort=score`} />
-        <StatCard label="Upcoming deadlines" value={upcoming.length} note="Opportunities due within 45 days" href="/opportunities?sort=deadline" />
-        <StatCard label="Favourite updates" value={favUpdates.length} note={digest.row ? `From digest of ${fmtDate(digest.row.day)}` : 'No digest yet'} />
-        <StatCard label="Research signals" value={recentSignals.length} note="Detected in the last 7 days" href="/research" />
-        <StatCard label="Follow-ups due" value={followUps.rows.length} note="Outreach follow-ups on or before today" href="/outreach" />
+      {/* KPI Row */}
+      <div className="metric-grid">
+        <StatCard label="New Opportunities" value={newOpps.length} href="/opportunities?sort=newest" />
+        <StatCard label="Strong Matches" value={strong.length} href={`/opportunities?min_score=${minScore}&sort=score`} />
+        <StatCard label="Upcoming Deadlines" value={upcoming.length} href="/opportunities?sort=deadline" />
+        <StatCard label="Research Signals" value={recentSignals.length} href="/research" />
+        <StatCard label="Follow-ups Due" value={followUps.rows.length} href="/outreach" />
       </div>
 
-      <Section title="Intelligence cycle" hint="Scheduled discovery, verification and daily digest runs.">
-        <div className="grid grid-3">
-          {CYCLE_SEGMENTS.map((seg) => {
-            const run = latestRun(runs.rows, seg.key);
-            const warns = warningsFromRun(run);
-            return (
-              <div key={seg.key} className="card stack-sm">
-                <div className="row-between">
-                  <h3 style={{ marginBottom: 0 }}>{seg.label}</h3>
-                  <StatusBadge status={run ? run.status : 'NOT RUN'} fallback="NOT RUN" />
-                </div>
-                <p className="small muted">{seg.detail}</p>
-                <dl className="kv">
-                  <dt>Last run</dt>
-                  <dd>{run ? fmtDateTime(run.ran_at) : 'Never'}</dd>
-                  {run && seg.key !== 'EVENING_DIGEST' && (
-                    <>
-                      <dt>Result</dt>
-                      <dd>
-                        {run.items_found ?? 0} found · {run.items_new ?? 0} new
-                      </dd>
-                    </>
-                  )}
-                  {seg.key === 'EVENING_DIGEST' && (
-                    <>
-                      <dt>Latest digest</dt>
-                      <dd>{digest.row ? fmtDate(digest.row.day) : 'None yet'}</dd>
-                    </>
-                  )}
-                  <dt>Warnings</dt>
-                  <dd>{warns.length}</dd>
-                </dl>
+      <div className="dashboard-grid">
+        {/* LEFT COLUMN: Intelligence */}
+        <div>
+          <Section title="Today's Intelligence" actions={<Link href="/opportunities?sort=score" style={{ fontWeight: 600, fontSize: '0.85rem' }}>View all →</Link>}>
+            {open.filter((o) => typeof o.fit_score === 'number').length === 0 ? (
+              <EmptyState title="No scored opportunities yet">
+                {opps.rows.length === 0
+                  ? 'The intelligence cycle hasn’t discovered any opportunities yet. Morning Discovery runs on schedule once your profile is saved.'
+                  : 'Opportunities exist but none has a match score yet. Scores are produced by Afternoon Verification.'}
+              </EmptyState>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {open
+                  .filter((o) => typeof o.fit_score === 'number')
+                  .slice(0, 3)
+                  .map((o) => (
+                    <OpportunityCard key={o.id} opp={o} compact />
+                  ))}
               </div>
-            );
-          })}
+            )}
+          </Section>
+
+          <Section title="Recent Research Signals" actions={<Link href="/research" style={{ fontWeight: 600, fontSize: '0.85rem' }}>View all →</Link>}>
+            {signals.rows.length === 0 ? (
+              <EmptyState title="No research signals">Signals are detected from professors’ publications during Afternoon Verification.</EmptyState>
+            ) : (
+              <div className="card" style={{ padding: 0 }}>
+                {signals.rows.slice(0, 4).map((s) => (
+                  <div key={s.id} className="intel-item" style={{ padding: '16px' }}>
+                    <div className="intel-main">
+                      <div className="intel-title">{s.title}</div>
+                      <div className="intel-meta">
+                        {s.professors?.name && <Link href={`/professors/${s.professors.id}`} style={{ fontWeight: 500 }}>{s.professors.name}</Link>}
+                        <span style={{ opacity: 0.5 }}>·</span>
+                        <span>{fmtDate(s.signal_date || s.created_at)}</span>
+                      </div>
+                      <div className="intel-reason">{s.summary}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Section>
         </div>
-      </Section>
 
-      <Section title="Top matches" hint="Highest explainable fit scores among open opportunities." actions={<Link href="/opportunities?sort=score">All opportunities →</Link>}>
-        {open.filter((o) => typeof o.fit_score === 'number').length === 0 ? (
-          <EmptyState title="No scored opportunities yet">
-            {opps.rows.length === 0
-              ? 'The intelligence cycle hasn’t discovered any opportunities yet. Morning Discovery runs on schedule once your profile is saved.'
-              : 'Opportunities exist but none has a match score yet. Scores are produced by Afternoon Verification.'}
-          </EmptyState>
-        ) : (
-          <div className="grid grid-2">
-            {open
-              .filter((o) => typeof o.fit_score === 'number')
-              .slice(0, 4)
-              .map((o) => (
-                <OpportunityCard key={o.id} opp={o} />
-              ))}
-          </div>
-        )}
-      </Section>
-
-      <div className="grid grid-2">
-        <section className="section" style={{ marginTop: 12 }}>
-          <div className="section-title">
-            <h2>Deadlines</h2>
-          </div>
-          {upcoming.length === 0 && apps.rows.filter((a) => (daysUntil(a.deadline) ?? -1) >= 0).length === 0 && tasks.rows.length === 0 ? (
-            <EmptyState title="No upcoming deadlines">Deadlines from opportunities, applications and tasks appear here.</EmptyState>
-          ) : (
-            <div className="card">
-              <ul className="list">
-                {upcoming.slice(0, 6).map((o) => {
-                  const dl = deadlineLabel(o.deadline);
+        {/* RIGHT COLUMN: Operations & Deadlines */}
+        <div>
+          <Section title="Intelligence Cycle">
+            <div className="card" style={{ padding: 0 }}>
+              <ul className="cycle-list" style={{ margin: 0, padding: '0 16px' }}>
+                {CYCLE_SEGMENTS.map((seg) => {
+                  const run = latestRun(runs.rows, seg.key);
+                  const warns = warningsFromRun(run);
                   return (
-                    <li key={o.id} className="row-between">
-                      <span>
-                        <Link href={`/opportunities/${o.id}`}>{o.title}</Link>
-                        <span className="small muted"> · {fmtDate(o.deadline)}</span>
-                      </span>
-                      <Badge tone={dl.tone}>{dl.text}</Badge>
+                    <li key={seg.key} className="cycle-item">
+                      <div className="cycle-status">
+                        {run && run.status === 'SUCCESS' ? <span style={{ color: 'var(--ok-fg)' }}>✓</span> : run && run.status === 'FAILED' ? <span style={{ color: 'var(--bad-fg)' }}>✗</span> : <span style={{ color: 'var(--text-muted)' }}>○</span>}
+                      </div>
+                      <div className="cycle-info" style={{ flex: 1 }}>
+                        <strong>{seg.label}</strong>
+                        <span>{run ? fmtDateTime(run.ran_at) : 'Waiting for next scheduled run'}</span>
+                        {warns.length > 0 && <div style={{ fontSize: '0.75rem', color: 'var(--warn-fg)', marginTop: '4px' }}>⚠ {warns.length} warning(s)</div>}
+                      </div>
                     </li>
                   );
                 })}
-                {apps.rows
-                  .filter((a) => (daysUntil(a.deadline) ?? -1) >= 0)
-                  .slice(0, 5)
-                  .map((a) => {
-                    const dl = deadlineLabel(a.deadline);
+              </ul>
+            </div>
+          </Section>
+
+          <Section title="Priority Deadlines">
+            {upcoming.length === 0 && apps.rows.filter((a) => (daysUntil(a.deadline) ?? -1) >= 0).length === 0 && tasks.rows.length === 0 ? (
+              <EmptyState title="Clear schedule">No upcoming deadlines detected.</EmptyState>
+            ) : (
+              <div className="card" style={{ padding: 0 }}>
+                <ul className="cycle-list" style={{ margin: 0, padding: '0 16px' }}>
+                  {upcoming.slice(0, 4).map((o) => {
+                    const dl = deadlineLabel(o.deadline);
                     return (
-                      <li key={a.id} className="row-between">
-                        <span>
-                          Application: <Link href={`/applications/${a.id}`}>{a.title}</Link>
-                          <span className="small muted"> · {fmtDate(a.deadline)}</span>
-                        </span>
+                      <li key={o.id} className="cycle-item" style={{ alignItems: 'flex-start' }}>
+                        <div className="cycle-info" style={{ flex: 1 }}>
+                          <strong><Link href={`/opportunities/${o.id}`}>{o.title}</Link></strong>
+                          <span>{fmtDate(o.deadline)}</span>
+                        </div>
                         <Badge tone={dl.tone}>{dl.text}</Badge>
                       </li>
                     );
                   })}
-                {tasks.rows.slice(0, 5).map((t) => {
-                  const dl = deadlineLabel(t.due_date);
-                  return (
-                    <li key={t.id} className="row-between">
-                      <span>
-                        Task: <Link href={`/applications/${t.application_id}`}>{t.task_title}</Link>
-                        <span className="small muted"> · {fmtDate(t.due_date)}</span>
-                      </span>
-                      <Badge tone={dl.tone}>{dl.text}</Badge>
-                    </li>
-                  );
-                })}
-              </ul>
-              {digestDeadlines.length > 0 && <p className="small muted" style={{ marginTop: 10 }}>Digest also flags {digestDeadlines.length} deadline/application item(s).</p>}
-            </div>
-          )}
-        </section>
+                  {apps.rows.filter((a) => (daysUntil(a.deadline) ?? -1) >= 0).slice(0, 3).map((a) => {
+                    const dl = deadlineLabel(a.deadline);
+                    return (
+                      <li key={a.id} className="cycle-item" style={{ alignItems: 'flex-start' }}>
+                        <div className="cycle-info" style={{ flex: 1 }}>
+                          <strong>Application: <Link href={`/applications/${a.id}`}>{a.title}</Link></strong>
+                          <span>{fmtDate(a.deadline)}</span>
+                        </div>
+                        <Badge tone={dl.tone}>{dl.text}</Badge>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </Section>
 
-        <section className="section" style={{ marginTop: 12 }}>
-          <div className="section-title">
-            <h2>Favourite updates</h2>
-          </div>
-          {favUpdates.length === 0 ? (
-            <EmptyState title="No favourite updates">
-              Mark universities, professors or research groups as favourites. Meaningful changes (new opportunities, research signals, group updates) appear here via the daily digest.
-            </EmptyState>
-          ) : (
-            <div className="card">
-              <ul className="list">
-                {favUpdates.map((u, i) => (
-                  <li key={i}>{u}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </section>
-      </div>
-
-      <div className="grid grid-2">
-        <section className="section" style={{ marginTop: 12 }}>
-          <div className="section-title">
-            <h2>Research signals</h2>
-            <Link href="/research">Research →</Link>
-          </div>
-          {signals.rows.length === 0 ? (
-            <EmptyState title="No research signals yet">Signals are detected from professors’ publications during Afternoon Verification.</EmptyState>
-          ) : (
-            <div className="card">
-              <ul className="list">
-                {signals.rows.slice(0, 5).map((s) => (
-                  <li key={s.id}>
-                    <strong>{s.title}</strong>
-                    <div className="small muted">
-                      {s.professors?.name ? `${s.professors.name} · ` : ''}
-                      {fmtDate(s.signal_date || s.created_at)}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </section>
-
-        <section className="section" style={{ marginTop: 12 }}>
-          <div className="section-title">
-            <h2>System &amp; source warnings</h2>
-          </div>
-          {warnings.length === 0 ? (
-            <div className="card">
-              <Badge tone="ok">No warnings</Badge> <span className="small muted">All recorded runs and sources are healthy{runs.rows.length === 0 ? ' (no runs recorded yet)' : ''}.</span>
-            </div>
-          ) : (
-            <div className="card">
-              <ul className="list">
-                {[...warnings, ...digestWarnings.map((w) => `Digest: ${w}`)].slice(0, 8).map((w, i) => (
-                  <li key={i}>
-                    <Badge tone="warn">Warning</Badge> <span className="small">{w}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </section>
-      </div>
-
-      <Section title="Daily digest" hint={digest.row ? `Generated for ${fmtDate(digest.row.day)}` : undefined}>
-        {sections.length === 0 ? (
-          <EmptyState title="No digest yet">The Evening Intelligence run builds a digest of new opportunities, deadlines, favourite updates and warnings.</EmptyState>
-        ) : (
-          <div className="grid grid-2">
-            {sections.map((s) => (
-              <div key={s.heading} className="card">
-                <h3>{s.heading}</h3>
-                <ul className="list small">
-                  {s.items.map((it, i) => (
-                    <li key={i}>{it}</li>
+          {warnings.length > 0 && (
+            <Section title="System Warnings">
+              <div className="card" style={{ padding: '16px', background: 'var(--bad-bg)', borderColor: 'var(--bad-border)' }}>
+                <ul style={{ margin: 0, paddingLeft: '16px', color: 'var(--bad-fg)', fontSize: '0.85rem' }}>
+                  {[...warnings, ...digestWarnings.map((w) => `Digest: ${w}`)].slice(0, 5).map((w, i) => (
+                    <li key={i} style={{ marginBottom: '4px' }}>{w}</li>
                   ))}
                 </ul>
               </div>
-            ))}
-          </div>
-        )}
-      </Section>
-
-      <div className="small muted">
-        Tracking {uniCount.count ?? 0} universities · {profCount.count ?? 0} professors · {opps.rows.length} opportunities. Top-match score:{' '}
-        <ScorePill score={open.find((o) => typeof o.fit_score === 'number')?.fit_score} />
+            </Section>
+          )}
+        </div>
       </div>
     </div>
   );

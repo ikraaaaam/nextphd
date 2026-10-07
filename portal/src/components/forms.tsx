@@ -7,8 +7,8 @@ export function FavouriteButton({ table, id, current, name }: { table: 'universi
       <input type="hidden" name="table" value={table} />
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="current" value={String(on)} />
-      <button type="submit" className="btn btn-sm" aria-pressed={on} aria-label={`${on ? 'Remove' : 'Add'} ${name} ${on ? 'from' : 'to'} favourites`}>
-        {on ? '★ Favourite' : '☆ Add favourite'}
+      <button type="submit" className={`btn btn-sm ${on ? 'btn-primary' : ''}`} aria-pressed={on} aria-label={`${on ? 'Remove' : 'Add'} ${name} ${on ? 'from' : 'to'} favourites`}>
+        {on ? '★ Remove from favourites' : '☆ Add to favourites'}
       </button>
     </form>
   );

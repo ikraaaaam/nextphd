@@ -3,7 +3,7 @@
 // funded or accepting applications, so they are inserted UNVERIFIED with no fabricated details.
 // Countries match supabase/seed.sql (the certified Phase 1 seed).
 export const STARTER_UNIVERSITIES: ReadonlyArray<{ name: string; country: string }> = [
-  { name: 'MBZUAI', country: 'UAE' },
+  { name: 'MBZUAI', country: 'United Arab Emirates' },
   { name: 'KFUPM', country: 'Saudi Arabia' },
   { name: 'KAUST', country: 'Saudi Arabia' },
   { name: 'GIST', country: 'South Korea' },
@@ -13,6 +13,17 @@ export const STARTER_UNIVERSITIES: ReadonlyArray<{ name: string; country: string
   { name: 'Monash Malaysia', country: 'Malaysia' },
   { name: 'UTM', country: 'Malaysia' },
 ];
+
+export const COUNTRY_CATALOGUE: Record<string, string[]> = {
+  'Middle East': ['Saudi Arabia', 'United Arab Emirates', 'Qatar'],
+  'North America': ['United States', 'Canada'],
+  'Asia-Pacific': ['Australia', 'Japan', 'Singapore', 'South Korea', 'Hong Kong', 'Malaysia'],
+  'Europe': ['Germany', 'Netherlands', 'Switzerland', 'Denmark', 'Sweden', 'Norway', 'Finland', 'Austria', 'Ireland'],
+};
+
+export const SUPPORTED_COUNTRIES = Object.values(COUNTRY_CATALOGUE).flat();
+export const SUPPORTED_REGIONS = Object.keys(COUNTRY_CATALOGUE);
+
 
 export const OPPORTUNITY_STATUSES = ['NEW', 'SAVED', 'VERIFY', 'CONTACTED', 'RESPONSE_RECEIVED', 'APPLICATION_PREPARING', 'APPLIED', 'INTERVIEW', 'OFFER', 'REJECTED', 'IGNORED'] as const;
 export const APPLICATION_STATUSES = ['INTERESTED', 'RESEARCHING', 'CONTACTED', 'PREPARING', 'APPLIED', 'INTERVIEW', 'OFFER', 'ACCEPTED', 'REJECTED'] as const;

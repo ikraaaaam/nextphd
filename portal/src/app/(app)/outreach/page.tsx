@@ -1,7 +1,8 @@
 import { requireSession } from '@/lib/session';
-import { PageHeader, Section, StatusBadge, EmptyState } from '@/components/ui';
+import { PageHeader, Section, StatusBadge, EmptyState, Badge } from '@/components/ui';
 import Link from 'next/link';
 import { OUTREACH_STATUSES } from '@/lib/constants';
+import { fmtDate, daysUntil } from '@/lib/format';
 
 export const metadata = {
   title: 'Outreach | NEXTPHD',
@@ -17,40 +18,67 @@ export default async function OutreachPage() {
     .order('updated_at', { ascending: false });
 
   return (
-    <div className="space-y-8">
+    <div>
       <PageHeader
-        title="Outreach"
-        description="Track your communications with professors and researchers."
+        title="Outreach Tracker"
+        description="CRM for your communications with professors and researchers."
       />
 
-      <Section title="Outreach Tracker">
+      <Section title="Active Conversations">
         {!contacts?.length ? (
-          <EmptyState title="No outreach contacts started yet." />
+          <EmptyState title="No outreach contacts started yet">
+            Link an outreach contact to an opportunity or professor to start tracking communications.
+          </EmptyState>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {contacts.map((contact: any) => (
-              <Link key={contact.id} href={`/outreach/${contact.id}`} className="card block hover:ring-2 hover:ring-[var(--accent)] transition-shadow">
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-semibold text-lg line-clamp-1">{contact.professors?.name || 'Unknown Contact'}</h3>
-                  <StatusBadge status={contact.status} />
-                </div>
-                {contact.opportunities?.title && (
-                  <p className="text-sm text-dimmed mb-3">Re: {contact.opportunities.title}</p>
-                )}
-                <div className="text-sm text-dimmed space-y-1">
-                  {contact.last_contact_at ? (
-                    <p>Last contact: {new Date(contact.last_contact_at).toLocaleDateString()}</p>
-                  ) : contact.first_contact_at ? (
-                    <p>First contact: {new Date(contact.first_contact_at).toLocaleDateString()}</p>
-                  ) : null}
-                  {contact.next_follow_up_at && (
-                    <p className="font-medium text-red-600">
-                      Follow-up: {new Date(contact.next_follow_up_at).toLocaleDateString()}
-                    </p>
-                  )}
-                </div>
-              </Link>
-            ))}
+          <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Contact / Professor</th>
+                  <th>Related Opportunity</th>
+                  <th>Status</th>
+                  <th>Last Contact</th>
+                  <th>Follow-up Due</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contacts.map((contact: any) => {
+                  const d = daysUntil(contact.next_follow_up_at);
+                  const isOverdue = d != null && d < 0;
+                  const isDueSoon = d != null && d >= 0 && d <= 3;
+                  
+                  return (
+                    <tr key={contact.id} className={isOverdue ? 'row-warning' : ''}>
+                      <td>
+                        <Link href={`/outreach/${contact.id}`} style={{ fontWeight: 600 }}>{contact.professors?.name || 'Unknown Contact'}</Link>
+                      </td>
+                      <td>
+                        {contact.opportunities?.title ? <span style={{ fontSize: '0.85rem' }}>{contact.opportunities.title}</span> : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                      </td>
+                      <td>
+                        <StatusBadge status={contact.status} />
+                      </td>
+                      <td>
+                        {contact.last_contact_at ? fmtDate(contact.last_contact_at) : contact.first_contact_at ? fmtDate(contact.first_contact_at) : <span style={{ color: 'var(--text-muted)' }}>Not contacted</span>}
+                      </td>
+                      <td>
+                        {contact.next_follow_up_at ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ color: isOverdue ? 'var(--bad-fg)' : 'inherit', fontWeight: isOverdue || isDueSoon ? 600 : 400 }}>
+                              {fmtDate(contact.next_follow_up_at)}
+                            </span>
+                            {isOverdue && <Badge tone="bad">Overdue</Badge>}
+                            {isDueSoon && <Badge tone="warn">Due soon</Badge>}
+                          </div>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)' }}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </Section>
